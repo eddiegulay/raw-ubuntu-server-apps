@@ -24,6 +24,34 @@ Scripts to simplify connecting, managing, and routing audio to Bluetooth devices
 **Description:**
 Connect a trusted Bluetooth device by shortcut, automatically switch profile, unsuspend the sink, set as default, and move all current audio streams.
 
+**Requirements:**
+
+| Package | Purpose |
+| :--- | :--- |
+| `bluetooth` / `bluez` | Core Bluetooth stack for Linux; manages Bluetooth devices. |
+| `bluez-tools` | Command-line tools to control Bluetooth devices (`bluetoothctl`). |
+| `pipewire` / `pipewire-pulse` | Modern audio server; replaces PulseAudio for routing audio streams. |
+| `wireplumber` | Session manager for PipeWire; handles device profiles and routing. |
+| `pipewire-audio-client-libraries` | Provides client libraries to control PipeWire sinks and streams. |
+| `libspa-0.2-bluetooth` | Bluetooth SPA plugin for PipeWire; enables A2DP/HSP profiles. |
+
+Install with:
+
+```bash
+sudo apt update
+sudo apt install bluetooth bluez bluez-tools pipewire pipewire-pulse wireplumber pipewire-audio-client-libraries libspa-0.2-bluetooth
+```
+
+**Notes:**
+
+* Make sure to **mask PulseAudio** if migrating fully to PipeWire to avoid conflicts:
+
+  ```bash
+  systemctl --user mask pulseaudio.service pulseaudio.socket
+  systemctl --user enable --now pipewire pipewire-pulse wireplumber
+  ```
+* These packages allow connecting, trusting, and routing audio to Bluetooth headsets reliably with `bt-connect.sh`.
+
 **Usage:**
 
 ```bash
@@ -54,6 +82,20 @@ Scripts to monitor battery levels and send notifications when low or critical.
 
 **Description:**  
 Continuously monitors battery status and sends desktop notifications when battery levels drop below configured thresholds.  
+
+**Requirements:**
+
+| Package | Purpose |
+| :--- | :--- |
+| `acpi` | Provides battery status information for monitoring (`acpi -b`). |
+| `libnotify-bin` | Enables sending desktop notifications via `notify-send`. |
+
+Install with:
+
+```bash
+sudo apt update
+sudo apt install acpi libnotify-bin
+```
 
 **Usage:**
 
