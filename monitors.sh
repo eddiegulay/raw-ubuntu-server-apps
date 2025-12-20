@@ -13,6 +13,7 @@ declare -A STATE_PRIMARY        # [name] -> "1" (is primary) or ""
 declare -A STATE_MODE           # [name] -> "WxH" (current mode)
 declare -A STATE_POS_X          # [name] -> int
 declare -A STATE_POS_Y          # [name] -> int
+declare -A STATE_SCALE          # [name] -> "XxY" (default 1x1)
 declare -A AVAILABLE_MODES      # [name] -> "mode1 mode2 ..." (space separated)
 
 # Colors
@@ -34,6 +35,7 @@ parse_xrandr() {
     STATE_MODE=()
     STATE_POS_X=()
     STATE_POS_Y=()
+    STATE_SCALE=()
     AVAILABLE_MODES=()
 
     local current_output=""
@@ -61,6 +63,8 @@ parse_xrandr() {
             
             if [[ "$state" == "connected" ]]; then
                 STATE_CONNECTED[$name]="1"
+                # Default scale
+                STATE_SCALE[$name]="1x1"
                 
                 # Check for primary
                 if [[ "$rest" =~ primary ]]; then
@@ -318,6 +322,57 @@ action_mirror() {
     STATE_POS_Y[$target]="${STATE_POS_Y[$src]}"
 }
 
+action_configure() {
+    local out=$(select_output)
+    [[ -z "$out" ]] && return
+
+    echo "Configure $out:"
+    echo "1. Set Resolution"
+    echo "2. Set Scale (default 1x1)"
+    read -p "Choice: " choice
+    
+    case $choice in
+        1)
+            # Resolution
+            echo "Available modes:"
+            local modes=(${AVAILABLE_MODES[$out]})
+            local i=1
+            for m in "${modes[@]}"; do
+                echo "$i) $m"
+                ((i++))
+            done
+            read -p "#? " m_choice
+            
+            # Arrays are 0-indexed in bash logic if we map, but let's just grab index
+            local index=$((m_choice - 1))
+            local selected_mode="${modes[$index]}"
+            
+            if [[ -n "$selected_mode" ]]; then
+                STATE_MODE[$out]="$selected_mode"
+                echo "Set mode to $selected_mode"
+            else
+                echo "Invalid mode."
+            fi
+            ;;
+        2)
+            # Scale
+            echo "Enter scale factor (e.g. 1, 0.8, 1.5, 1x1, 1.2x1.2):"
+            read -p "Scale: " scale_val
+            if [[ -n "$scale_val" ]]; then
+                # If single number, make it XxX
+                if [[ ! "$scale_val" =~ x ]]; then
+                    scale_val="${scale_val}x${scale_val}"
+                fi
+                STATE_SCALE[$out]="$scale_val"
+                echo "Set scale to $scale_val"
+            fi
+            ;;
+        *)
+            echo "Invalid choice"
+            ;;
+    esac
+}
+
 validate_state() {
     local enabled_count=0
     local primary_count=0
@@ -377,7 +432,7 @@ save_layout() {
     
     for out in "${OUTPUTS[@]}"; do
         if [[ "${STATE_ENABLED[$out]}" == "1" ]]; then
-            cmd+=" --output $out --mode ${STATE_MODE[$out]} --pos ${STATE_POS_X[$out]}x${STATE_POS_Y[$out]} --rotate normal"
+            cmd+=" --output $out --mode ${STATE_MODE[$out]} --pos ${STATE_POS_X[$out]}x${STATE_POS_Y[$out]} --rotate normal --scale ${STATE_SCALE[$out]:-1x1}"
             if [[ "${STATE_PRIMARY[$out]}" == "1" ]]; then
                 cmd+=" --primary"
             fi
@@ -421,8 +476,8 @@ print_header() {
 
 print_status() {
     echo -e "\n${BOLD}Current Configuration:${NC}"
-    printf "%-10s %-12s %-10s %-15s %-10s %s\n" "OUTPUT" "STATUS" "ENABLED" "MODE" "PRIMARY" "POS"
-    echo "------------------------------------------------------------------"
+    printf "%-10s %-12s %-10s %-15s %-10s %-15s %s\n" "OUTPUT" "STATUS" "ENABLED" "MODE" "PRIMARY" "POS" "SCALE"
+    echo "--------------------------------------------------------------------------------"
     
     for out in "${OUTPUTS[@]}"; do
         local conn_str="${RED}disc${NC}"
@@ -440,7 +495,8 @@ print_status() {
             pos_str="${STATE_POS_X[$out]}x${STATE_POS_Y[$out]}"
         fi
 
-        printf "%-10s %-20b %-20b %-15s %-10b %s\n" "$out" "$conn_str" "$en_str" "$mode_str" "$prim_str" "$pos_str"
+        local scale_str="${STATE_SCALE[$out]:-1x1}"
+        printf "%-10s %-20b %-20b %-15s %-10b %-15s %s\n" "$out" "$conn_str" "$en_str" "$mode_str" "$prim_str" "$pos_str" "$scale_str"
     done
     echo ""
 }
@@ -451,7 +507,8 @@ show_menu() {
     echo "3. Extend display"
     echo "4. Mirror display"
     echo "5. Set primary display"
-    echo "6. Save layout"
+    echo "6. Configure Resolution / Scale"
+    echo "7. Save layout"
     echo "0. Exit"
     echo -n "Select option: "
 }
@@ -488,6 +545,10 @@ while true; do
             action_primary
             ;;
         6)
+            action_configure
+            read -p "Press Enter..."
+            ;;
+        7)
             save_layout
              read -p "Press Enter..."
             ;;

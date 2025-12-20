@@ -157,9 +157,52 @@ A short description of what this utility does.
 ./example-script.sh [options]
 ```
 
+
+## Display Management
+
+Utilities for managing screens and monitors.
+
+### `monitors.sh`
+
+**Description:**
+A console-based display manager for simplified `xrandr` configuration. It allows you to enable/disable, extend, mirror, and configure displays safely via an interactive menu before applying changes.
+
+**Features:**
+* **Interactive Menu**: Manage displays without memorizing `xrandr` flags.
+* **Smart Extension**: Easily place displays Right/Left/Above/Below others.
+* **Auto-Mirroring**: Automatically detects common resolutions for mirroring.
+* **Resolution & Scale**: Configure specific resolutions and HiDPI scaling factors via menu.
+* **Validation**: Prevents invalid configs (e.g. no primary display).
+* **Persistence**: Generates an executable script at `~/.screenlayout/current.sh`.
+
+**Usage:**
+
+Run the script from your terminal:
+
+```bash
+./monitors.sh
+```
+
+**Step-by-Step Guide:**
+
+1.  **Select Action**: Choose an option from the menu (e.g., `3. Extend display`, `6. Configure Resolution / Scale`).
+    *   **Extend**: Select a reference monitor, a target monitor, and the direction (Right/Left etc.).
+    *   **Resolution/Scale**: Select a monitor to pick a resolution list or type a custom scale (e.g., `1.2`).
+2.  **Verify**: The "Current Configuration" table updates to show your pending changes.
+3.  **Save**: Select `7. Save layout`.
+4.  **Apply**: The tool validates your config, saves it to `~/.screenlayout/current.sh`, and prompts you to apply it immediately.
+
+**Requirements:**
+
+| Package | Purpose |
+| :--- | :--- |
+| `xrandr` | Used to query and configure display outputs. |
+| `bash` | Version 4.0+ required for associative arrays. |
+
 ---
 
 ## Contributing
+
 
 * Submit pull requests for new apps or improvements to existing scripts.
 * Keep scripts **small, self-contained, and reliable**.
